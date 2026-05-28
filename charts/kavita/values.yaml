@@ -1,0 +1,191 @@
+# -- Override the chart name used in generated resource names.
+nameOverride: ""
+
+# -- Override the full generated resource name.
+fullnameOverride: ""
+
+# -- Additional labels applied to all resources.
+commonLabels: {}
+
+# -- Additional annotations applied to all resources.
+commonAnnotations: {}
+
+# -- Number of Kavita replicas. Use 1 when persistence is enabled with ReadWriteOnce storage.
+replicaCount: 1
+
+image:
+  # -- Kavita image repository.
+  repository: ghcr.io/kareadita/kavita
+  # -- Kavita image tag. Defaults to .Chart.AppVersion when empty.
+  tag: ""
+  # -- Kavita image digest. When set, the rendered image uses tag@digest.
+  digest: ""
+  # -- Kubernetes image pull policy.
+  pullPolicy: IfNotPresent
+
+# -- Image pull secrets for private registries.
+imagePullSecrets: []
+
+serviceAccount:
+  # -- Create a dedicated service account.
+  create: false
+  # -- Automount the service account token into the pod.
+  automount: false
+  # -- Service account annotations.
+  annotations: {}
+  # -- Service account name. If empty and create is true, a name is generated.
+  name: ""
+
+service:
+  # -- Kubernetes Service type.
+  type: ClusterIP
+  # -- Service port.
+  port: 5000
+  # -- Container HTTP port.
+  targetPort: 5000
+  # -- Additional Service annotations.
+  annotations: {}
+  # -- Additional Service labels.
+  labels: {}
+
+ingress:
+  # -- Enable an Ingress resource.
+  enabled: false
+  # -- Ingress class name. If empty, the cluster default is used.
+  className: ""
+  # -- Ingress annotations.
+  annotations: {}
+  # -- Ingress host rules.
+  hosts:
+    - host: kavita.local
+      paths:
+        - path: /
+          pathType: Prefix
+  # -- Ingress TLS configuration.
+  tls: []
+
+persistence:
+  # -- Persist Kavita configuration and database files.
+  enabled: true
+  # -- Existing PVC name to use instead of creating one.
+  existingClaim: ""
+  # -- PVC size for Kavita configuration.
+  size: 5Gi
+  # -- StorageClass for the PVC. Set to "-" to request an empty storageClassName.
+  storageClass: ""
+  # -- PVC access modes.
+  accessModes:
+    - ReadWriteOnce
+  # -- PVC annotations.
+  annotations: {}
+  # -- PVC labels.
+  labels: {}
+  # -- Container path for Kavita configuration. Use /config for the LinuxServer image.
+  mountPath: /kavita/config
+
+# -- Timezone passed as the TZ environment variable.
+timezone: Europe/Berlin
+
+# -- Environment variables rendered as literal values.
+env: {}
+
+# -- Additional environment variables. Supports value and valueFrom entries.
+extraEnv: []
+
+# -- Additional envFrom sources.
+envFrom: []
+
+# -- Additional media/library volumes.
+mediaVolumes: []
+# - name: books
+#   persistentVolumeClaim:
+#     claimName: books
+
+# -- Additional media/library volume mounts.
+mediaVolumeMounts: []
+# - name: books
+#   mountPath: /books
+#   readOnly: true
+
+# -- Additional volumes.
+extraVolumes: []
+
+# -- Additional volume mounts.
+extraVolumeMounts: []
+
+# -- Pod annotations.
+podAnnotations: {}
+
+# -- Additional pod labels.
+podLabels: {}
+
+# -- Pod security context.
+podSecurityContext: {}
+
+# -- Container security context.
+securityContext: {}
+
+# -- Node selector for scheduling.
+nodeSelector: {}
+
+# -- Pod tolerations.
+tolerations: []
+
+# -- Pod affinity rules.
+affinity: {}
+
+# -- Pod topology spread constraints.
+topologySpreadConstraints: []
+
+# -- RuntimeClass name for the pod.
+runtimeClassName: ""
+
+# -- Pod priority class name.
+priorityClassName: ""
+
+# -- Container resource requests and limits.
+resources: {}
+
+updateStrategy:
+  # -- Deployment update strategy type.
+  type: Recreate
+
+livenessProbe:
+  # -- Enable the liveness probe.
+  enabled: true
+  # -- HTTP path for the liveness probe.
+  path: /
+  # -- Initial liveness probe delay in seconds.
+  initialDelaySeconds: 30
+  # -- Liveness probe period in seconds.
+  periodSeconds: 30
+  # -- Liveness probe timeout in seconds.
+  timeoutSeconds: 5
+  # -- Liveness probe failure threshold.
+  failureThreshold: 5
+
+readinessProbe:
+  # -- Enable the readiness probe.
+  enabled: true
+  # -- HTTP path for the readiness probe.
+  path: /
+  # -- Initial readiness probe delay in seconds.
+  initialDelaySeconds: 10
+  # -- Readiness probe period in seconds.
+  periodSeconds: 10
+  # -- Readiness probe timeout in seconds.
+  timeoutSeconds: 3
+  # -- Readiness probe failure threshold.
+  failureThreshold: 3
+
+startupProbe:
+  # -- Enable the startup probe.
+  enabled: true
+  # -- HTTP path for the startup probe.
+  path: /
+  # -- Startup probe period in seconds.
+  periodSeconds: 10
+  # -- Startup probe timeout in seconds.
+  timeoutSeconds: 5
+  # -- Startup probe failure threshold.
+  failureThreshold: 30
