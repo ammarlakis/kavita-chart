@@ -48,7 +48,9 @@ app.kubernetes.io/instance: {{ .Release.Name | quote }}
 {{- define "kavita.image" -}}
 {{- $tag := default .Chart.AppVersion .Values.image.tag -}}
 {{- if .Values.image.digest -}}
-{{- printf "%s:%s@%s" .Values.image.repository $tag .Values.image.digest -}}
+{{- printf "%s@%s" .Values.image.repository .Values.image.digest -}}
+{{- else if hasPrefix "@" $tag -}}
+{{- printf "%s%s" .Values.image.repository $tag -}}
 {{- else -}}
 {{- printf "%s:%s" .Values.image.repository $tag -}}
 {{- end -}}

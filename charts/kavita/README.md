@@ -30,10 +30,10 @@ Kavita reading server
 | extraVolumeMounts                  | list   | `[]`                                                                   | Additional volume mounts.                                                                |
 | extraVolumes                       | list   | `[]`                                                                   | Additional volumes.                                                                      |
 | fullnameOverride                   | string | `""`                                                                   | Override the full generated resource name.                                               |
-| image.digest                       | string | `""`                                                                   | Kavita image digest. When set, the rendered image uses tag@digest.                       |
+| image.digest                       | string | `""`                                                                   | Kavita image digest. When set, the rendered image uses repository@digest.                |
 | image.pullPolicy                   | string | `"IfNotPresent"`                                                       | Kubernetes image pull policy.                                                            |
 | image.repository                   | string | `"ghcr.io/kareadita/kavita"`                                           | Kavita image repository.                                                                 |
-| image.tag                          | string | `""`                                                                   | Kavita image tag. Defaults to .Chart.AppVersion when empty.                              |
+| image.tag                          | string | `"v0.9.0.2"`                                                           | Kavita image tag.                                                                        |
 | imagePullSecrets                   | list   | `[]`                                                                   | Image pull secrets for private registries.                                               |
 | ingress.annotations                | object | `{}`                                                                   | Ingress annotations.                                                                     |
 | ingress.className                  | string | `""`                                                                   | Ingress class name. If empty, the cluster default is used.                               |
