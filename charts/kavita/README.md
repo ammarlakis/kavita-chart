@@ -30,7 +30,6 @@ Kavita reading server
 | extraVolumeMounts                  | list   | `[]`                                                                   | Additional volume mounts.                                                                |
 | extraVolumes                       | list   | `[]`                                                                   | Additional volumes.                                                                      |
 | fullnameOverride                   | string | `""`                                                                   | Override the full generated resource name.                                               |
-| image.digest                       | string | `""`                                                                   | Kavita image digest. When set, the rendered image uses repository@digest.                |
 | image.pullPolicy                   | string | `"IfNotPresent"`                                                       | Kubernetes image pull policy.                                                            |
 | image.repository                   | string | `"ghcr.io/kareadita/kavita"`                                           | Kavita image repository.                                                                 |
 | image.tag                          | string | `"v0.9.0.2"`                                                           | Kavita image tag.                                                                        |

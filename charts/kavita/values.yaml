@@ -18,8 +18,6 @@ image:
   repository: ghcr.io/kareadita/kavita
   # -- Kavita image tag.
   tag: "v0.9.0.2"
-  # -- Kavita image digest. When set, the rendered image uses repository@digest.
-  digest: ""
   # -- Kubernetes image pull policy.
   pullPolicy: IfNotPresent
 
