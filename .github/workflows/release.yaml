@@ -1,152 +1,78 @@
 name: Release Charts
-
 on:
   push:
-    tags:
-      - "v*"
-  workflow_dispatch:
-    inputs:
-      release_name:
-        description: "Release tag to publish, for example v0.1.0"
-        required: false
-
+    tags: ['v*.*.*']
 permissions:
   contents: read
-
 jobs:
-  meta:
-    runs-on: ubuntu-latest
-    outputs:
-      tag: ${{ steps.release.outputs.tag }}
-      version: ${{ steps.release.outputs.version }}
-      chart: ${{ steps.release.outputs.chart }}
-      chart_asset: ${{ steps.release.outputs.chart_asset }}
-    steps:
-      - name: Checkout
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-
-      - name: Resolve release metadata
-        id: release
-        shell: bash
-        env:
-          RELEASE_NAME: ${{ inputs.release_name }}
-        run: |
-          if [[ "${GITHUB_REF_TYPE}" == "tag" ]]; then
-            tag="${GITHUB_REF_NAME}"
-          elif [[ -n "${RELEASE_NAME:-}" ]]; then
-            tag="${RELEASE_NAME}"
-          else
-            version="$(awk '/^version:/ { print $2; exit }' charts/kavita/Chart.yaml)"
-            tag="v${version}"
-          fi
-
-          if [[ ! "${tag}" =~ ^v[0-9]+\.[0-9]+\.[0-9]+([-+][0-9A-Za-z.-]+)?$ ]]; then
-            echo "Release tag must look like v0.1.0: ${tag}" >&2
-            exit 1
-          fi
-
-          version="${tag#v}"
-          chart="$(awk '/^name:/ { print $2; exit }' charts/kavita/Chart.yaml)"
-          chart_asset="${chart}-${version}.tgz"
-
-          echo "tag=${tag}" >> "${GITHUB_OUTPUT}"
-          echo "version=${version}" >> "${GITHUB_OUTPUT}"
-          echo "chart=${chart}" >> "${GITHUB_OUTPUT}"
-          echo "chart_asset=${chart_asset}" >> "${GITHUB_OUTPUT}"
-
+  verify:
+    uses: ./.github/workflows/ci.yaml
   release:
-    needs: meta
+    needs: verify
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
     permissions:
       contents: write
-    runs-on: ubuntu-latest
     outputs:
-      chart_asset: ${{ steps.package.outputs.asset }}
+      chart_asset: ${{ steps.meta.outputs.asset }}
     steps:
-      - name: Checkout
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           fetch-depth: 0
-
-      - name: Install Helm
-        uses: azure/setup-helm@9bc31f4ebc9c6b171d7bfbaa5d006ae7abdb4310 # v5.0.1
-
-      - name: Set up git-cliff
-        uses: kenji-miyake/setup-git-cliff@2778609c643a39a2576c4bae2e493b855eb4aee8 # v2.0.1
-
-      - name: Validate chart version
-        shell: bash
-        run: |
-          chart_version="$(awk '/^version:/ { print $2; exit }' charts/kavita/Chart.yaml)"
-
-          if [[ "${chart_version}" != "${{ needs.meta.outputs.version }}" ]]; then
-            echo "Chart version ${chart_version} does not match ${{ needs.meta.outputs.tag }}" >&2
-            exit 1
-          fi
-
-      - name: Package Helm chart
-        id: package
-        shell: bash
-        run: |
-          mkdir -p dist
-          helm lint charts/kavita
-          helm template kavita charts/kavita >/dev/null
-          helm package charts/kavita --destination dist
-          file="dist/${{ needs.meta.outputs.chart_asset }}"
-          test -f "${file}"
-          echo "file=${file}" >> "${GITHUB_OUTPUT}"
-          echo "asset=${{ needs.meta.outputs.chart_asset }}" >> "${GITHUB_OUTPUT}"
-
-      - name: Generate changelog
-        id: changelog
-        shell: bash
-        run: |
-          printf 'changelog<<EOF\n' >> "${GITHUB_OUTPUT}"
-          if git rev-parse "${{ needs.meta.outputs.tag }}" >/dev/null 2>&1; then
-            git cliff -l >> "${GITHUB_OUTPUT}"
-          else
-            git cliff --unreleased --tag "${{ needs.meta.outputs.tag }}" >> "${GITHUB_OUTPUT}"
-          fi
-          printf 'EOF\n' >> "${GITHUB_OUTPUT}"
-
-      - name: Create GitHub Release and upload asset
-        uses: softprops/action-gh-release@3d0d9888cb7fd7b750713d6e236d1fcb99157228 # v3.0.2
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - uses: azure/setup-helm@9bc31f4ebc9c6b171d7bfbaa5d006ae7abdb4310
         with:
-          tag_name: ${{ needs.meta.outputs.tag }}
-          name: ${{ needs.meta.outputs.tag }}
-          body: ${{ steps.changelog.outputs.changelog }}
-          draft: false
-          prerelease: false
-          files: ${{ steps.package.outputs.file }}
-          overwrite_files: true
-          make_latest: true
-
+          version: v3.19.0
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          name: tested-chart
+          path: dist
+      - name: Check immutable release metadata
+        id: meta
+        env:
+          TAG: ${{ github.ref_name }}
+        run: |
+          [[ "$TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$ ]]
+          version="$(awk '/^version:/ {print $2; exit}' charts/kavita/Chart.yaml)"
+          test "$TAG" = "v$version"
+          git merge-base --is-ancestor HEAD origin/master
+          asset="kavita-$version.tgz"
+          test -f "dist/$asset"
+          test "$(helm show chart "dist/$asset" | awk '/^version:/ {print $2; exit}')" = "$version"
+          echo "asset=$asset" >> "$GITHUB_OUTPUT"
+      - uses: kenji-miyake/setup-git-cliff@2778609c643a39a2576c4bae2e493b855eb4aee8
+      - name: Publish tested package
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.ref_name }}
+          ASSET: ${{ steps.meta.outputs.asset }}
+        run: |
+          git cliff --latest > release-notes.md
+          gh release create "$TAG" "dist/$ASSET" --verify-tag --notes-file release-notes.md
+          gh release download "$TAG" --pattern "$ASSET" --dir downloaded
+          cmp "dist/$ASSET" "downloaded/$ASSET"
   update-registry:
-    needs:
-      - meta
-      - release
+    needs: release
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - name: Create GitHub App token
         id: app-token
-        uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
+        uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1
         with:
           client-id: 2336325
           private-key: ${{ secrets.UPDATE_REGISTRY_APP_PRIVATE_KEY }}
           owner: ${{ github.repository_owner }}
-
       - name: Trigger registry update
-        uses: the-actions-org/workflow-dispatch@3133c5d135c7dbe4be4f9793872b6ef331b53bc7 # v4
+        uses: the-actions-org/workflow-dispatch@3133c5d135c7dbe4be4f9793872b6ef331b53bc7
         with:
-          repo: "ammarlakis/helm-charts"
+          repo: ammarlakis/helm-charts
           workflow: Add Chart to Helm Repository
-          ref: "master"
-          wait-for-completion: false
+          ref: master
+          wait-for-completion: true
           inputs: |
             {
               "repository": "${{ github.repository }}",
-              "release_name": "${{ needs.meta.outputs.tag }}",
+              "release_name": "${{ github.ref_name }}",
               "chart_asset": "${{ needs.release.outputs.chart_asset }}"
             }
           token: ${{ steps.app-token.outputs.token }}
