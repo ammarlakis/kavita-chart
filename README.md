@@ -35,11 +35,3 @@ mediaVolumeMounts:
     mountPath: /books
     readOnly: true
 ```
-
-## Release
-
-```sh
-./scripts/release.sh
-```
-
-Run from a clean, current `master`. Set `RELEASE_VERSION=0.2.0` to choose a version; otherwise git-cliff calculates it. The script prepares a local release branch without tagging or publishing. Add `--pr` to push that branch and open a draft PR. After review and merge, create the approved version tag separately. See [Maintenance](MAINTENANCE.md) for verification and release gates.
