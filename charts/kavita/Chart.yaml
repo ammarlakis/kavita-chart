@@ -2,7 +2,7 @@ apiVersion: v2
 name: kavita
 description: Kavita reading server
 type: application
-version: 0.1.0
+version: 0.1.1
 # renovate: image=ghcr.io/kareadita/kavita
 appVersion: "0.9.0.2"
 home: https://www.kavitareader.com/
